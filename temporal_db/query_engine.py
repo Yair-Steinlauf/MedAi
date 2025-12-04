@@ -52,7 +52,8 @@ class TemporalQueryEngine:
         """
         try:
             tt = _normalize_timezone(pd.to_datetime(transaction_time)) if transaction_time else _normalize_timezone(pd.to_datetime(datetime.now()))
-            vs = _normalize_timezone(pd.to_datetime(valid_start)) if valid_start else pd.Timestamp.min
+            # Set a more intuitive default for the start time if it's not provided.
+            vs = _normalize_timezone(pd.to_datetime(valid_start)) if valid_start else datetime(1, 1, 1, 0, 0)
             ve = _normalize_timezone(pd.to_datetime(valid_end)) if valid_end else pd.Timestamp.max
             
             patient_df = self.df[
@@ -68,8 +69,6 @@ class TemporalQueryEngine:
             db_state_at_tt = patient_df[patient_df['transaction_time'] <= tt]
             if db_state_at_tt.empty: return {"error": f"No records were known to the system at {tt.strftime('%Y-%m-%d %H:%M')}.", "count": 0}
 
-            # --- MODIFIED LOGIC ---
-            # Find records where the *start time* is within the query range.
             final_records = db_state_at_tt[
                 (db_state_at_tt['valid_start_time'] >= vs) &
                 (db_state_at_tt['valid_start_time'] < ve)
